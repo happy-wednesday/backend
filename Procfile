@@ -1,1 +1,1 @@
-web: gunicorn hwd.wsgin 
+web: gunicorn hwd.wsgi
