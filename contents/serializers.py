@@ -75,6 +75,7 @@ class ResponseSerializer(serializers.ModelSerializer):
             response_id = base(base_10_id, 36)[:10]
             return response_id
 
+        print(get_client_ip(self.context["request"]))
         response = super(ResponseSerializer, self).create(validated_data)
 
         response_id = create_id(get_client_ip(self.context["request"]))
