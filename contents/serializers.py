@@ -78,11 +78,8 @@ class ResponseSerializer(serializers.ModelSerializer):
         response = super(ResponseSerializer, self).create(validated_data)
 
         response_id = create_id(get_client_ip(self.context["request"]))
-        print(get_client_ip(self.context["request"]))
-        print(response_id)
-
         response.response_id = response_id
-        
+
         user = self.context['request'].user
         if not user.is_anonymous:
             response.user = user
@@ -118,7 +115,41 @@ class ThreadSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
+
+        def get_client_ip(request):
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0]
+            else:
+                ip = request.META.get('REMOTE_ADDR')
+            return ip
+
+        def base(n, b, digits="0123456789abcdefghijklmnopqrstuvwxyz"):
+            if n == 0:
+                return '0'
+            s = []
+            p = abs(n)
+            while p:
+                s.append(digits[p % b])
+                p //= b
+            if n < 0:
+                s.append('-')
+            return ''.join(reversed(s))
+
+        def create_id(ip):
+            date = datetime.date.today().strftime('%Y%m%d')
+            id_row = ip + date
+            id_row = id_row.encode()
+            base_16_id = hashlib.md5(id_row).hexdigest()
+            base_10_id = int(base_16_id,16)
+            response_id = base(base_10_id, 36)[:10]
+            return response_id
+
         thread = super(ThreadSerializer, self).create(validated_data)
+
+        response_id = create_id(get_client_ip(self.context["request"]))
+        thread.response_id = response_id
+
         user = self.context['request'].user
         if not user.is_anonymous:
             thread.user = user
