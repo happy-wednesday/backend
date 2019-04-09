@@ -15,6 +15,7 @@ class Thread(models.Model):
         related_name='thread_user', on_delete=models.SET_NULL, blank=True, null=True)
     title = models.TextField()
     message = models.TextField()
+    response_id = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_writable = models.BooleanField(default=True)
@@ -26,4 +27,5 @@ class Response(models.Model):
     thread = models.ForeignKey(Thread, verbose_name='スレッド',
         related_name='thread', on_delete=models.SET_NULL, null=True)
     message = models.TextField()
+    response_id = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
