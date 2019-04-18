@@ -32,6 +32,8 @@ class ContentsSerializer(serializers.ModelSerializer):
 
 class ResponseSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    #anchor_parent = serializers.PrimaryKeyRelatedField(many=True)
+    anchor_child = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = Response
@@ -40,7 +42,12 @@ class ResponseSerializer(serializers.ModelSerializer):
             "user",
             "message",
             "response_id",
+            "response_number",
             "thread",
+            "anchor_parent",
+            "anchor_child",
+            "is_parent",
+            "is_child",
             "created_at",
         )
 
@@ -81,6 +88,8 @@ class ResponseSerializer(serializers.ModelSerializer):
         response_id = create_id(get_client_ip(self.context["request"]))
         response.response_id = response_id
 
+        response.response_number = Response.objects.filter(thread=response.thread.id).count()
+
         user = self.context['request'].user
         if not user.is_anonymous:
             response.user = user
@@ -107,8 +116,6 @@ class ThreadSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "title",
-            "message",
-            "response_id",
             "created_at",
             "thread",
             "is_active",
@@ -116,53 +123,9 @@ class ThreadSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-
-        def get_client_ip(request):
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                ip = x_forwarded_for.split(',')[0]
-            else:
-                ip = request.META.get('REMOTE_ADDR')
-            return ip
-
-        def base(n, b, digits="0123456789abcdefghijklmnopqrstuvwxyz"):
-            if n == 0:
-                return '0'
-            s = []
-            p = abs(n)
-            while p:
-                s.append(digits[p % b])
-                p //= b
-            if n < 0:
-                s.append('-')
-            return ''.join(reversed(s))
-
-        def create_id(ip):
-            date = datetime.date.today().strftime('%Y%m%d')
-            id_row = ip + date
-            id_row = id_row.encode()
-            base_16_id = hashlib.md5(id_row).hexdigest()
-            base_10_id = int(base_16_id,16)
-            response_id = base(base_10_id, 36)[:10]
-            return response_id
-
         thread = super(ThreadSerializer, self).create(validated_data)
-
-        response_id = create_id(get_client_ip(self.context["request"]))
-        thread.response_id = response_id
-
         user = self.context['request'].user
         if not user.is_anonymous:
             thread.user = user
-
-        r_message = validated_data["message"].replace("\n", "<br>")
-        pattern = r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)"
-        repatter = re.compile(pattern)
-        result = repatter.findall(r_message)
-        for urls in result:
-            url = "".join(urls)
-            print(url)
-            r_message = r_message.replace(url, f'<a href="{url}" target="_blank">{url}</a>')
-        thread.message = r_message
         thread.save()
         return thread
