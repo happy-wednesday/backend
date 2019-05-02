@@ -4,6 +4,7 @@ from rest_framework.response import Response
 #from rest_framework.permissions import AllowAny
 from .models import Contents, Thread, Response
 from .serializers import ContentsSerializer, ThreadSerializer, ResponseSerializer
+from django.db.models import Prefetch
 
 
 class ContentsViewSet(ModelViewSet):
@@ -14,7 +15,8 @@ class ContentsViewSet(ModelViewSet):
 class ThreadViewSet(ModelViewSet):
     #permission_classes = (AllowAny,)
     serializer_class = ThreadSerializer
-    queryset = Thread.objects.order_by("-created_at")
+    queryset = Thread.objects.order_by("-created_at").prefetch_related(Prefetch('thread',
+        queryset=Response.objects.order_by('created_at')))
 
 class ResponseViewSet(ModelViewSet):
     #permission_classes = (AllowAny,)
